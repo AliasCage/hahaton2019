@@ -24,6 +24,7 @@ public class Generator {
         try {
             List<Response> question = createQuestionWithNumber(rawText);
             question.addAll(createQuestionWithYears(rawText));
+            question.addAll(createQuestionWithGeo(rawText));
             return question;
         } catch (MyStemApplicationException e) {
             throw new InternalException("Something bad =(");
@@ -64,6 +65,7 @@ public class Generator {
                     responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
 
                 }
+
 //                if (isNumeric(split[i])) {
 //                    if (length == i + 1) {
 //                        continue;
@@ -156,6 +158,30 @@ public class Generator {
         return responses;
     }
 
+    private List<Response> createQuestionWithGeo(String text) throws MyStemApplicationException {
+        List<Response> responses = new ArrayList<>();
+        for (String sentense : text.split("\\.")) {
+            String[] split = sentense.split("\\s");
+            int length = split.length;
+            for (int i = 0; i < length; i++) {
+                if (isGeo(split[i])) {
+                    String answer = split[i];
+                    split[i] = "";
+                    StringBuilder question;
+                    question = new StringBuilder("Где ");
+                    for (int j = 0; j < length; j++) {
+                      if (split[j].length() > 0) {
+                        question.append(" ").append(split[j]);
+                      }
+                    }
+                  responses.add(new Response(question.toString(), null, answer));
+                  break;
+                }
+            }
+        }
+        return responses;
+    }
+
     public boolean check(String str, Padegi... padegis) throws MyStemApplicationException {
         Iterable<Info> info = getStringInfo(str);
         for (Info info1 : info) {
@@ -217,6 +243,16 @@ public class Generator {
         Iterable<Info> info = getStringInfo(str);
         for (Info info1 : info) {
             if (info1.rawResponse().contains("V")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isGeo(String str) throws MyStemApplicationException {
+        Iterable<Info> info = getStringInfo(str);
+        for (Info info1 : info) {
+            if (info1.rawResponse().contains("geo")) {
                 return true;
             }
         }
