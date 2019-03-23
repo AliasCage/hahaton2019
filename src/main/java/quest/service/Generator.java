@@ -2,6 +2,7 @@ package quest.service;
 
 import jdk.nashorn.internal.runtime.regexp.joni.exception.InternalException;
 import org.springframework.stereotype.Component;
+import quest.model.Padegi;
 import quest.model.Response;
 import ru.stachek66.nlp.mystem.holding.Factory;
 import ru.stachek66.nlp.mystem.holding.MyStem;
@@ -41,22 +42,24 @@ public class Generator {
                     }
                     StringBuilder question;
                     String answer = split[i];
+                    split[i] = "";
                     if (split[i - 1].toLowerCase().equals("с")) {
                         question = new StringBuilder("С какого года ");
                     } else if (split[i - 1].toLowerCase().equals("в")) {
-                        question = new StringBuilder("В каком ");
+                        question = new StringBuilder("В каком году ");
                     } else {
                         System.out.println(sentense);
                         continue;
                     }
-                    int from = 0;
-                    int to = i - 1;
-                    if (i < length / 2) {
-                        from = i + 1;
-                        to = length;
+                    split[i - 1] = "";
+                    if (split[i + 1].toLowerCase().startsWith("г")) {
+                        split[i + 1] = "";
                     }
-                    for (int j = from; j < to; j++) {
-                        question.append(" ").append(split[j]);
+
+                    for (int j = 0; j < length; j++) {
+                        if (split[j].length() > 0) {
+                            question.append(" ").append(split[j]);
+                        }
                     }
                     responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
 
@@ -106,20 +109,24 @@ public class Generator {
                     if (isMonth(split[i + 1])) {
                         continue;
                     }
+                    //todo:fix in future
                     String answer = split[i];
                     split[i] = "";
-                    StringBuilder question = new StringBuilder("Сколько ");
+                    StringBuilder question = new StringBuilder(" сколько ");
+                    if (check(split[i + 1], Padegi.PRED, Padegi.DAT)) {
+                        question = new StringBuilder(" скольки ");
+                    }
                     if (isPred(split[i - 1])) {
-                        String str = split[i - 1];
-                        question = new StringBuilder(str.substring(0, 1).toUpperCase() + str.substring(1));
-                        if (isMany(split[i + 1])) {
-//                        if (check(split[i + 1], Padegi.PRED, Padegi.DAT, )) {
+                        question = new StringBuilder(split[i - 1]).append(" ");
+//                        if (isMany(split[i + 1])) {
+                        if (check(split[i + 1], Padegi.ROD)) {
                             //pr dat  rod+ predlog
                             question.append(" скольки ");
-                        } else {
-                            //vin rod tv
-                            question.append(" сколько ");
                         }
+//                        else {
+//                            //vin rod tv
+//                            question.append(" сколько ");
+//                        }
                     }
                     question.append(split[i + 1]);
                     split[i + 1] = "";
@@ -149,11 +156,17 @@ public class Generator {
         return responses;
     }
 
-//    public boolean check(Padegi... padegis){
-//        for (Padegi padegi : padegis) {
-//
-//        }
-//    }
+    public boolean check(String str, Padegi... padegis) throws MyStemApplicationException {
+        Iterable<Info> info = getStringInfo(str);
+        for (Info info1 : info) {
+            for (Padegi padegi : padegis) {
+                if (info1.rawResponse().contains(padegi.getType())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     private boolean isMany(String str) throws MyStemApplicationException {
         Iterable<Info> info = getStringInfo(str);
