@@ -1,15 +1,14 @@
 package quest.service;
 
 import jdk.nashorn.internal.runtime.regexp.joni.exception.InternalException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import quest.model.Padegi;
 import quest.model.Response;
-import ru.stachek66.nlp.mystem.holding.Factory;
 import ru.stachek66.nlp.mystem.holding.MyStem;
 import ru.stachek66.nlp.mystem.holding.MyStemApplicationException;
 import ru.stachek66.nlp.mystem.holding.Request;
 import ru.stachek66.nlp.mystem.model.Info;
-import scala.Option;
 import scala.collection.JavaConversions;
 
 import java.util.*;
@@ -17,23 +16,32 @@ import java.util.*;
 @Component
 public class Generator {
 
+    @Autowired
+    private MyStem mystemAnalyzer;
+    @Autowired
+    private List<String> badWords;
+    @Autowired
+    private List<String> month;
+
     public List<Response> generate(String rawText) {
         try {
-            List<Response> question = createQuestionWithNumber(rawText);
-            question.addAll(createQuestionWithYears(rawText));
-            question.addAll(createQuestionWithNames(rawText));
-            question.addAll(createQuestionWithGeo(rawText));
-            return question;
+            String[] sentenses = rawText.split("\\.");
+
+            List<Response> questions = new ArrayList<>();
+            createQuestionWithNumber(sentenses, questions);
+            createQuestionWithYears(sentenses, questions);
+            createQuestionWithNames(sentenses, questions);
+            createQuestionWithGeo(sentenses, questions);
+            return questions;
         } catch (MyStemApplicationException e) {
             throw new InternalException("Something bad =(");
         }
     }
 
-    private List<Response> createQuestionWithNames(String text) throws MyStemApplicationException {
-        List<Response> responses = new ArrayList<>();
+    private void createQuestionWithNames(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
         Set<String> names = new HashSet<>();
         {
-            for (String sentense : text.split("\\.")) {
+            for (String sentense : sentenses) {
                 String[] word = sentense.split("\\s");
                 for (int i = 0; i < word.length; i++) {
                     if (isFIO(word[i])) {
@@ -54,7 +62,7 @@ public class Generator {
             }
         }
 
-        for (String sentense : text.split("\\.")) {
+        for (String sentense : sentenses) {
             String[] split = sentense.split("\\s");
             int length = split.length;
             for (int i = 0; i < length; i++) {
@@ -70,17 +78,20 @@ public class Generator {
                         split[i + 2] = "";
                     }
                     StringBuilder question = new StringBuilder("Кто ");
-                    for (int j = 0; j < length; j++) {
-                        if (split[j].length() > 0) {
-                            question.append(split[j]).append(" ");
+                    if (i > 0 && isVerb(split[i - 1])) {
+                        question.append(split[i - 1]).append(" ");
+                        split[i - 1] = "";
+                    }
+                    for (String s : split) {
+                        if (s.length() > 0) {
+                            question.append(s).append(" ");
                         }
                     }
-                    responses.add(new Response(question.toString(), getRandName(answer, names), answer));
+                    questions.add(new Response(question.toString(), getRandName(answer, names), answer));
                     break;
                 }
             }
         }
-        return responses;
     }
 
     private boolean isFIO(String str) throws MyStemApplicationException {
@@ -93,9 +104,8 @@ public class Generator {
         return false;
     }
 
-    private List<Response> createQuestionWithYears(String text) throws MyStemApplicationException {
-        List<Response> responses = new ArrayList<>();
-        for (String sentense : text.split("\\.")) {
+    private void createQuestionWithYears(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
+        for (String sentense : sentenses) {
             String[] split = sentense.split("\\s");
             int length = split.length;
             for (int i = 0; i < length; i++) {
@@ -119,12 +129,12 @@ public class Generator {
                         split[i + 1] = "";
                     }
 
-                    for (int j = 0; j < length; j++) {
-                        if (split[j].length() > 0) {
-                            question.append(" ").append(split[j]);
+                    for (String s : split) {
+                        if (s.length() > 0) {
+                            question.append(" ").append(s);
                         }
                     }
-                    responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
+                    questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
 
                 }
 
@@ -152,14 +162,10 @@ public class Generator {
 //                }
             }
         }
-
-        return responses;
     }
 
-
-    private List<Response> createQuestionWithNumber(String text) throws MyStemApplicationException {
-        List<Response> responses = new ArrayList<>();
-        for (String sentense : text.split("\\.")) {
+    private void createQuestionWithNumber(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
+        for (String sentense : sentenses) {
             String[] split = sentense.split("\\s");
             int length = split.length;
             for (int i = 0; i < length; i++) {
@@ -212,17 +218,15 @@ public class Generator {
                             question.append(" ").append(split[j].toLowerCase());
                         }
                     }
-                    responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
+                    questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
                     break;
                 }
             }
         }
-        return responses;
     }
 
-    private List<Response> createQuestionWithGeo(String text) throws MyStemApplicationException {
-        List<Response> responses = new ArrayList<>();
-        for (String sentense : text.split("\\.")) {
+    private void createQuestionWithGeo(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
+        for (String sentense : sentenses) {
             String[] split = sentense.split("\\s");
             int length = split.length;
             for (int i = 0; i < length; i++) {
@@ -231,17 +235,16 @@ public class Generator {
                     split[i] = "";
                     StringBuilder question;
                     question = new StringBuilder("Где ");
-                    for (int j = 0; j < length; j++) {
-                      if (split[j].length() > 0) {
-                        question.append(" ").append(split[j]);
-                      }
+                    for (String s : split) {
+                        if (s.length() > 0) {
+                            question.append(" ").append(s);
+                        }
                     }
-                  responses.add(new Response(question.toString(), null, answer));
-                  break;
+                    questions.add(new Response(question.toString(), null, answer));
+                    break;
                 }
             }
         }
-        return responses;
     }
 
     private boolean checkPadeg(String str, Padegi... padegis) throws MyStemApplicationException {
@@ -276,9 +279,6 @@ public class Generator {
         return false;
     }
 
-    private static List<String> badWords = Arrays.asList("около", "почти");
-    private static List<String> month = Arrays.asList("январ", "февра", "март", "апрел", "май", "мае", "мая", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр");
-
     private boolean isMonth(String s) {
         boolean contains = false;
         for (String s1 : month) {
@@ -294,11 +294,11 @@ public class Generator {
         return isNumeric(s) && s.length() <= 4 && (Integer.parseInt(s) < 2032 && Integer.parseInt(s) > 1009);
     }
 
-    public boolean isNumeric(String str) {
+    private boolean isNumeric(String str) {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
     }
 
-    public boolean isVerb(String str) throws MyStemApplicationException {
+    private boolean isVerb(String str) throws MyStemApplicationException {
         if (str.length() < 4) {
             return false;
         }
@@ -311,20 +311,17 @@ public class Generator {
         return false;
     }
 
-    public boolean isGeo(String str) throws MyStemApplicationException {
+    private boolean isGeo(String str) throws MyStemApplicationException {
         Iterable<Info> info = getStringInfo(str);
         for (Info info1 : info) {
-            if (info1.rawResponse().contains("geo")) {
+            if (info1.rawResponse().contains("гео")) {
                 return true;
             }
         }
         return false;
     }
 
-    private final static MyStem mystemAnalyzer = new Factory("-igd --format json --weight")
-            .newMyStem("3.0", Option.empty()).get();
-
-    private static Iterable<Info> getStringInfo(String data) throws MyStemApplicationException {
+    private Iterable<Info> getStringInfo(String data) throws MyStemApplicationException {
         return JavaConversions.asJavaIterable(
                 mystemAnalyzer
                         .analyze(Request.apply(data))
@@ -332,7 +329,7 @@ public class Generator {
                         .toIterable());
     }
 
-    private static String normalize(String data) throws MyStemApplicationException {
+    private String normalize(String data) throws MyStemApplicationException {
         Iterable<Info> stringInfo = getStringInfo(data);
         for (Info info : stringInfo) {
             return info.lex().get();
@@ -340,7 +337,7 @@ public class Generator {
         return data;
     }
 
-    public List<String> getRandAnswer(String answer) {
+    private List<String> getRandAnswer(String answer) {
         List<String> answers = new ArrayList<>(4);
         answers.add(answer);
 
@@ -369,13 +366,12 @@ public class Generator {
         answers.add(answer);
 
         Random rn = new Random();
-        while (answer.length() < 4) {
+        while (answers.size() < 4) {
             int rand = rn.nextInt((list.size()));
             answers.add(list.get(rand));
             list.remove(list.get(rand));
         }
         return new ArrayList<>(answers);
     }
-
 
 }
