@@ -21,10 +21,66 @@ public class Generator {
 
     public List<Response> generate(String rawText) {
         try {
-            return createQuestionWithNumber(rawText);
+            List<Response> question = createQuestionWithNumber(rawText);
+            question.addAll(createQuestionWithYears(rawText));
+            return question;
         } catch (MyStemApplicationException e) {
             throw new InternalException("Something bad =(");
         }
+    }
+
+    private List<Response> createQuestionWithYears(String text) throws MyStemApplicationException {
+        List<Response> responses = new ArrayList<>();
+        for (String sentense : text.split("\\.")) {
+            String[] split = sentense.split("\\s");
+            int length = split.length;
+            for (int i = 0; i < length; i++) {
+                if (isYear(split[i])) {
+                    if (i == 0 || !split[i + 1].toLowerCase().startsWith("г")) {
+                        continue;
+                    }
+                    StringBuilder question;
+                    String answer = split[i];
+                    if (split[i - 1].toLowerCase().equals("c")) {
+                        question = new StringBuilder("С какого ");
+                    } else if (split[i - 1].toLowerCase().equals("в")) {
+                        question = new StringBuilder("В каком ");
+                    } else {
+                        System.out.println(sentense);
+                        continue;
+                    }
+                    for (int j = i + 1; j < length; j++) {
+                        question.append(" ").append(split[j]);
+                    }
+                    responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
+
+                }
+//                if (isNumeric(split[i])) {
+//                    if (length == i + 1) {
+//                        continue;
+//                    }
+//                    if (isMonth(split[i + 1])) {
+//                        continue;
+//                    }
+//                    String answer = split[i];
+//                    StringBuilder question = new StringBuilder("Сколько ").append(split[i + 1]);
+//                    if (isVerb(split[i - 1])) {
+//                        question.append(split[i - 1]);
+//                        i--;
+//                    }
+//                    for (int j = 0; j < i; j++) {
+//                        question.append(" ").append(split[j].toLowerCase());
+//                    }
+//                    for (int j = i + 3; j < length; j++) {
+//                        question.append(" ").append(split[j].toLowerCase());
+//                    }
+//                    responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
+//                    break;
+//                }
+            }
+        }
+
+        return responses;
     }
 
 
@@ -67,7 +123,7 @@ public class Generator {
 
     private static List<String> month = Arrays.asList("январ", "февра", "март", "апрел", "май", "мае", "мая", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр");
 
-    private static boolean isMonth(String s) {
+    private boolean isMonth(String s) {
         boolean contains = false;
         for (String s1 : month) {
             contains = s.toLowerCase().contains(s1);
@@ -78,15 +134,15 @@ public class Generator {
         return contains;
     }
 
-    private static boolean isYear(String s) {
+    private boolean isYear(String s) {
         return isNumeric(s) && s.length() <= 4 && (Integer.parseInt(s) < 2032 && Integer.parseInt(s) > 1009);
     }
 
-    public static boolean isNumeric(String str) {
+    public boolean isNumeric(String str) {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
     }
 
-    public static boolean isVerb(String str) throws MyStemApplicationException {
+    public boolean isVerb(String str) throws MyStemApplicationException {
         if (str.length() < 4) {
             return false;
         }
@@ -110,14 +166,17 @@ public class Generator {
                         .toIterable());
     }
 
-    public static List<String> getRandAnswer(String answer) {
+    public List<String> getRandAnswer(String answer) {
         List<String> answers = new ArrayList<>(4);
         answers.add(answer);
 
+        int val = Integer.parseInt(answer);
+        float step = (float) (3f / (Math.pow(10, answer.length() - 1)));
+        int max = (int) (val * (1 + step));
+        int min = (int) (val * (1 - step));
         Random rn = new Random();
-        int parseInt = Integer.parseInt(answer);
         for (int i = 0; i < 3; ) {
-            Integer rand = rn.nextInt((int) (((parseInt + (parseInt * 0.25)) - (parseInt - (parseInt * 0.25)) + 1) + (parseInt - (parseInt * 0.25))));
+            Integer rand = rn.nextInt((max - min) + 1) + min;
             if (!answers.contains(String.valueOf(rand))) {
                 answers.add(String.valueOf(rand));
                 i++;

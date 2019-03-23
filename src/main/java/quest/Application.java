@@ -1,10 +1,8 @@
 package quest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import quest.service.Analize;
 import ru.stachek66.nlp.mystem.holding.Factory;
 import ru.stachek66.nlp.mystem.holding.MyStem;
 import ru.stachek66.nlp.mystem.holding.MyStemApplicationException;
@@ -26,8 +24,6 @@ import java.util.stream.Stream;
 
 @SpringBootApplication
 public class Application {
-    @Autowired
-    private Analize analize;
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -46,21 +42,35 @@ public class Application {
         lines.close();
         return data;
     }
-//
+
+    //
 //    public static void main(String[] args) throws IOException, URISyntaxException, MyStemApplicationException {
-//
+//        int i = 1950;
+//        float step = (float) (2f/(Math.pow(10, 3)));
+//        System.out.println(step);
+//        int max = (int) (i * (1 + step));
+//        int min = (int) (i * (1 - step));
+//        int i1 = (new Random().nextInt((max - min) + 1) + min);
+//        System.out.println(max);
+//        System.out.println(min);
+//        System.out.println(i1);
+//        System.out.println();
 //        String text = init();
 //        System.out.println(text);
 //
 ////        createQuestionWithNumber(text);
 ////        createQuestionWithYear(text);
-//        final Iterable<Info> result = getStringInfo("К около первоначальным членам ООН относятся 50 государств, подписавших Устав ООН на конференции в Сан-Франциско 26 июня 1945 года, а также Польша");
-//
-//        for (final Info info : result) {
-//            Literal
-//                    literal = objectMapper.readValue(info.rawResponse(), Literal.class);
-//            System.out.println(info.initial() + " -> " + info.lex() + " | " + info.rawResponse());
+//        List<Response> generate = new Generator().generate(text);
+//        for (Response response : generate) {
+//            System.out.println(response.toString());
 //        }
+////        final Iterable<Info> result = getStringInfo("К около первоначальным членам ООН относятся 50 государств, подписавших Устав ООН на конференции в Сан-Франциско 26 июня 1945 года, а также Польша");
+////
+////        for (final Info info : result) {
+////            Literal
+////                    literal = objectMapper.readValue(info.rawResponse(), Literal.class);
+////            System.out.println(info.initial() + " -> " + info.lex() + " | " + info.rawResponse());
+////        }
 //
 //    }
 

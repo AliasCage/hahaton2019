@@ -3,12 +3,14 @@ package quest.model;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.List;
 
 @Setter
 @Getter
 @NoArgsConstructor
+@ToString
 public class Response {
     private String question;
     private List<String> answers;
