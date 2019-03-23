@@ -2,7 +2,7 @@ package quest.service;
 
 import jdk.nashorn.internal.runtime.regexp.joni.exception.InternalException;
 import org.springframework.stereotype.Component;
-import quest.Response;
+import quest.model.Response;
 import ru.stachek66.nlp.mystem.holding.Factory;
 import ru.stachek66.nlp.mystem.holding.MyStem;
 import ru.stachek66.nlp.mystem.holding.MyStemApplicationException;
@@ -45,21 +45,18 @@ public class Generator {
                         continue;
                     }
                     String answer = split[i];
-                    String question = "Сколько ";
-                    question = question + split[i + 1];
+                    StringBuilder question = new StringBuilder("Сколько ").append(split[i + 1]);
                     if (isVerb(split[i - 1])) {
-                        question = question + split[i - 1];
+                        question.append(split[i - 1]);
                         i--;
                     }
                     for (int j = 0; j < i; j++) {
-                        question = question + " ";
-                        question = question + split[j].toLowerCase();
+                        question.append(" ").append(split[j].toLowerCase());
                     }
                     for (int j = i + 3; j < length; j++) {
-                        question = question + " ";
-                        question = question + split[j].toLowerCase();
+                        question.append(" ").append(split[j].toLowerCase());
                     }
-                    responses.add(new Response(question, getRandAnswer(answer), answer));
+                    responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
                     break;
                 }
             }

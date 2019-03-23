@@ -1,4 +1,4 @@
-package quest;
+package quest.model;
 
 
 import lombok.Getter;
