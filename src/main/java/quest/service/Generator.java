@@ -107,16 +107,39 @@ public class Generator {
                         continue;
                     }
                     String answer = split[i];
-                    StringBuilder question = new StringBuilder("Сколько ").append(split[i + 1]);
-                    if (isVerb(split[i - 1])) {
-                        question.append(split[i - 1]);
-                        i--;
+                    split[i] = "";
+                    StringBuilder question = new StringBuilder("Сколько ");
+                    if (isPred(split[i - 1])) {
+                        String str = split[i - 1];
+                        question = new StringBuilder(str.substring(0, 1).toUpperCase() + str.substring(1));
+                        if (isMany(split[i + 1])) {
+//                        if (check(split[i + 1], Padegi.PRED, Padegi.DAT, )) {
+                            //pr dat  rod+ predlog
+                            question.append(" скольки ");
+                        } else {
+                            //vin rod tv
+                            question.append(" сколько ");
+                        }
                     }
+                    question.append(split[i + 1]);
+                    split[i + 1] = "";
+                    for (int j = i; j > 0; j--) {
+                        if (isVerb(split[j])) {
+                            question.append(" ").append(split[j]);
+                            split[j] = "";
+                            i--;
+                        }
+                    }
+
                     for (int j = 0; j < i; j++) {
-                        question.append(" ").append(split[j].toLowerCase());
+                        if (split[i].length() > 0 && !badWords.contains(split[i].toLowerCase())) {
+                            question.append(" ").append(split[j].toLowerCase());
+                        }
                     }
-                    for (int j = i + 3; j < length; j++) {
-                        question.append(" ").append(split[j].toLowerCase());
+                    for (int j = i + 1; j < length; j++) {
+                        if (split[i].length() > 0 && !badWords.contains(split[i].toLowerCase())) {
+                            question.append(" ").append(split[j].toLowerCase());
+                        }
                     }
                     responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
                     break;
@@ -126,6 +149,33 @@ public class Generator {
         return responses;
     }
 
+//    public boolean check(Padegi... padegis){
+//        for (Padegi padegi : padegis) {
+//
+//        }
+//    }
+
+    private boolean isMany(String str) throws MyStemApplicationException {
+        Iterable<Info> info = getStringInfo(str);
+        for (Info info1 : info) {
+            if (info1.rawResponse().contains("мн")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isPred(String str) throws MyStemApplicationException {
+        Iterable<Info> info = getStringInfo(str);
+        for (Info info1 : info) {
+            if (info1.rawResponse().contains("PR")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<String> badWords = Arrays.asList("около", "почти");
     private static List<String> month = Arrays.asList("январ", "февра", "март", "апрел", "май", "мае", "мая", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр");
 
     private boolean isMonth(String s) {

@@ -17,7 +17,7 @@ public class Response {
     private String rightAnswer;
 
     public Response(String question, List<String> answers, String rightAnswer) {
-        this.question = question;
+        this.question = question.replace("  ", " ");
         this.answers = answers;
         this.rightAnswer = rightAnswer;
     }
