@@ -12,10 +12,7 @@ import ru.stachek66.nlp.mystem.model.Info;
 import scala.Option;
 import scala.collection.JavaConversions;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Component
 public class Generator {
@@ -24,10 +21,75 @@ public class Generator {
         try {
             List<Response> question = createQuestionWithNumber(rawText);
             question.addAll(createQuestionWithYears(rawText));
+            question.addAll(createQuestionWithNames(rawText));
             return question;
         } catch (MyStemApplicationException e) {
             throw new InternalException("Something bad =(");
         }
+    }
+
+    private List<Response> createQuestionWithNames(String text) throws MyStemApplicationException {
+        List<Response> responses = new ArrayList<>();
+        Set<String> names = new HashSet<>();
+        {
+            for (String sentense : text.split("\\.")) {
+                String[] word = sentense.split("\\s");
+                for (int i = 0; i < word.length; i++) {
+                    if (isFIO(word[i])) {
+                        int up = 1;
+                        String name = normalize(word[i]);
+                        if (i + 1 < word.length && isFIO(word[i + 1])) {
+                            name = name + " " + normalize(word[i + 1]);
+                            up++;
+                        }
+                        if (i + 2 < word.length && isFIO(word[i + 2])) {
+                            name = name + " " + normalize(word[i + 2]);
+                            up++;
+                        }
+                        i = i + up;
+                        names.add(name);
+                    }
+                }
+            }
+        }
+
+        for (String sentense : text.split("\\.")) {
+            String[] split = sentense.split("\\s");
+            int length = split.length;
+            for (int i = 0; i < length; i++) {
+                if (isFIO(split[i])) {
+                    String answer = normalize(split[i]);
+                    split[i] = "";
+                    if (i + 2 < length && isFIO(split[i + 1])) {
+                        answer = answer + " " + normalize(split[i + 1]);
+                        split[i + 1] = "";
+                    }
+                    if (i + 3 < length && isFIO(split[i + 2])) {
+                        answer = answer + " " + normalize(split[i + 2]);
+                        split[i + 2] = "";
+                    }
+                    StringBuilder question = new StringBuilder("Кто ");
+                    for (int j = 0; j < length; j++) {
+                        if (split[j].length() > 0) {
+                            question.append(split[j]).append(" ");
+                        }
+                    }
+                    responses.add(new Response(question.toString(), getRandName(answer, names), answer));
+                    break;
+                }
+            }
+        }
+        return responses;
+    }
+
+    private boolean isFIO(String str) throws MyStemApplicationException {
+        Iterable<Info> info = getStringInfo(str);
+        for (Info info1 : info) {
+            if (info1.rawResponse().contains("имя") || info1.rawResponse().contains("отч") || info1.rawResponse().contains("фам")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<Response> createQuestionWithYears(String text) throws MyStemApplicationException {
@@ -113,13 +175,13 @@ public class Generator {
                     String answer = split[i];
                     split[i] = "";
                     StringBuilder question = new StringBuilder(" сколько ");
-                    if (check(split[i + 1], Padegi.PRED, Padegi.DAT)) {
+                    if (checkPadeg(split[i + 1], Padegi.PRED, Padegi.DAT)) {
                         question = new StringBuilder(" скольки ");
                     }
                     if (isPred(split[i - 1])) {
                         question = new StringBuilder(split[i - 1]).append(" ");
 //                        if (isMany(split[i + 1])) {
-                        if (check(split[i + 1], Padegi.ROD)) {
+                        if (checkPadeg(split[i + 1], Padegi.ROD)) {
                             //pr dat  rod+ predlog
                             question.append(" скольки ");
                         }
@@ -156,7 +218,7 @@ public class Generator {
         return responses;
     }
 
-    public boolean check(String str, Padegi... padegis) throws MyStemApplicationException {
+    private boolean checkPadeg(String str, Padegi... padegis) throws MyStemApplicationException {
         Iterable<Info> info = getStringInfo(str);
         for (Info info1 : info) {
             for (Padegi padegi : padegis) {
@@ -234,6 +296,14 @@ public class Generator {
                         .toIterable());
     }
 
+    private static String normalize(String data) throws MyStemApplicationException {
+        Iterable<Info> stringInfo = getStringInfo(data);
+        for (Info info : stringInfo) {
+            return info.lex().get();
+        }
+        return data;
+    }
+
     public List<String> getRandAnswer(String answer) {
         List<String> answers = new ArrayList<>(4);
         answers.add(answer);
@@ -251,6 +321,24 @@ public class Generator {
             }
         }
         return answers;
+    }
+
+    private List<String> getRandName(String answer, Set<String> names) {
+        if (names.size() < 4) {
+            return new ArrayList<>(names);
+        }
+
+        List<String> list = new ArrayList<>(names);
+        Set<String> answers = new HashSet<>(4);
+        answers.add(answer);
+
+        Random rn = new Random();
+        while (answer.length() < 4) {
+            int rand = rn.nextInt((list.size()));
+            answers.add(list.get(rand));
+            list.remove(list.get(rand));
+        }
+        return new ArrayList<>(answers);
     }
 
 
