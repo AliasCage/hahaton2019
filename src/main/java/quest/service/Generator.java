@@ -25,7 +25,7 @@ public class Generator {
 
     public List<Response> generate(String rawText) {
         try {
-            String[] sentenses = rawText.split("\\.");
+            String[] sentenses = rawText.split("\\.| —");
 
             List<Response> questions = new ArrayList<>();
             createQuestionWithNumber(sentenses, questions);
@@ -70,15 +70,15 @@ public class Generator {
                     String answer = normalize(split[i]);
                     String padegQuestion = getPadegQuestion(split[i]);
                     split[i] = "";
-                    if (i + 2 < length && isFIO(split[i + 1])) {
+                    if (i + 1 < length && isFIO(split[i + 1])) {
                         answer = answer + " " + normalize(split[i + 1]);
                         split[i + 1] = "";
                     }
-                    if (i + 3 < length && isFIO(split[i + 2])) {
+                    if (i + 2 < length && isFIO(split[i + 2])) {
                         answer = answer + " " + normalize(split[i + 2]);
                         split[i + 2] = "";
                     }
-                    StringBuilder question;
+                    StringBuilder question = new StringBuilder(padegQuestion);
                     if (i > 0 && isVerb(split[i - 1])) {
                         question = new StringBuilder(padegQuestion);
                         question.append(split[i - 1]).append(" ");
@@ -88,9 +88,8 @@ public class Generator {
                         question = new StringBuilder(split[i - 1]);
                         question.append(" ").append(padegQuestion).append(" ");
                         split[i - 1] = "";
-                    } else {
-                        question = new StringBuilder(padegQuestion);
                     }
+
                     for (String s : split) {
                         if (s.length() > 0) {
                             question.append(s).append(" ");
@@ -126,7 +125,7 @@ public class Generator {
     private boolean isFIO(String str) throws MyStemApplicationException {
         Iterable<Info> info = getStringInfo(str);
         for (Info info1 : info) {
-            if (info1.rawResponse().contains("имя") || info1.rawResponse().contains("отч") || info1.rawResponse().contains("фам")) {
+            if (info1.rawResponse().contains("имя,") || info1.rawResponse().contains("отч,") || info1.rawResponse().contains("фам,")) {
                 return true;
             }
         }
@@ -164,31 +163,51 @@ public class Generator {
                         }
                     }
                     questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
-
                 }
+                if (isNumeric(split[i])) {
+                    if (length == i + 1) {
+                        continue;
+                    }
+                    if (i + 1 < length && isMonth(split[i + 1])) {
+                        String[] answers = new String[3];
+                        answers[0] = split[i];
+                        answers[1] = split[i + 1];
+                        split[i] = "";
+                        split[i + 1] = "";
+                        if (i + 2 < length && isYear(split[i + 2])) {
+                            answers[2] = split[i + 2];
+                            split[i + 2] = "";
+                        }
 
-//                if (isNumeric(split[i])) {
-//                    if (length == i + 1) {
-//                        continue;
-//                    }
-//                    if (isMonth(split[i + 1])) {
-//                        continue;
-//                    }
-//                    String answer = split[i];
-//                    StringBuilder question = new StringBuilder("Сколько ").append(split[i + 1]);
-//                    if (isVerb(split[i - 1])) {
-//                        question.append(split[i - 1]);
-//                        i--;
-//                    }
-//                    for (int j = 0; j < i; j++) {
-//                        question.append(" ").append(split[j].toLowerCase());
-//                    }
-//                    for (int j = i + 3; j < length; j++) {
-//                        question.append(" ").append(split[j].toLowerCase());
-//                    }
-//                    responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
-//                    break;
-//                }
+                        if (i + 3 < length && split[i + 3].toLowerCase().startsWith("г")) {
+                            split[i + 3] = "";
+                        }
+
+                        StringBuilder question = new StringBuilder("Когда ");
+                        for (String s : split) {
+                            if (s.length() > 0) {
+                                question.append(s).append(" ");
+                            }
+                        }
+                        String answer = answers[0] + " " + answers[1];
+                        List<String> days = getRandAnswer(answers[0]);
+                        List<String> resultAnswers = new ArrayList<>(4);
+                        if (answers[2] != null) {
+                            answer = answer + " " + answers[2];
+                            List<String> years = getRandAnswer(answers[2]);
+                            resultAnswers.add(days.get(0) + " " + answers[1] + " " + years.get(0));
+                            resultAnswers.add(days.get(1) + " " + answers[1] + " " + years.get(1));
+                            resultAnswers.add(days.get(2) + " " + answers[1] + " " + years.get(2));
+                        } else {
+                            resultAnswers.add(days.get(0) + " " + answers[1]);
+                            resultAnswers.add(days.get(1) + " " + answers[1]);
+                            resultAnswers.add(days.get(2) + " " + answers[1]);
+                        }
+
+                        questions.add(new Response(question.toString(), resultAnswers, answer));
+                        break;
+                    }
+                }
             }
         }
     }
