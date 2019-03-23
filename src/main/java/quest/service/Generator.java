@@ -35,21 +35,27 @@ public class Generator {
             String[] split = sentense.split("\\s");
             int length = split.length;
             for (int i = 0; i < length; i++) {
-                if (isYear(split[i])) {
-                    if (i == 0 || !split[i + 1].toLowerCase().startsWith("г")) {
+                if (isYear(split[i]) && (split[i + 1].toLowerCase().startsWith("г") || split[i + 1].toLowerCase().equals("г"))) {
+                    if (i == 0) {
                         continue;
                     }
                     StringBuilder question;
                     String answer = split[i];
-                    if (split[i - 1].toLowerCase().equals("c")) {
-                        question = new StringBuilder("С какого ");
+                    if (split[i - 1].toLowerCase().equals("с")) {
+                        question = new StringBuilder("С какого года ");
                     } else if (split[i - 1].toLowerCase().equals("в")) {
                         question = new StringBuilder("В каком ");
                     } else {
                         System.out.println(sentense);
                         continue;
                     }
-                    for (int j = i + 1; j < length; j++) {
+                    int from = 0;
+                    int to = i - 1;
+                    if (i < length / 2) {
+                        from = i + 1;
+                        to = length;
+                    }
+                    for (int j = from; j < to; j++) {
                         question.append(" ").append(split[j]);
                     }
                     responses.add(new Response(question.toString(), getRandAnswer(answer), answer));
@@ -119,7 +125,6 @@ public class Generator {
         }
         return responses;
     }
-
 
     private static List<String> month = Arrays.asList("январ", "февра", "март", "апрел", "май", "мае", "мая", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр");
 
