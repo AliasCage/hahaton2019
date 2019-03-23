@@ -68,6 +68,7 @@ public class Generator {
             for (int i = 0; i < length; i++) {
                 if (isFIO(split[i])) {
                     String answer = normalize(split[i]);
+                    String padegQuestion = getPadegQuestion(split[i]);
                     split[i] = "";
                     if (i + 2 < length && isFIO(split[i + 1])) {
                         answer = answer + " " + normalize(split[i + 1]);
@@ -77,10 +78,18 @@ public class Generator {
                         answer = answer + " " + normalize(split[i + 2]);
                         split[i + 2] = "";
                     }
-                    StringBuilder question = new StringBuilder("Кто ");
+                    StringBuilder question;
                     if (i > 0 && isVerb(split[i - 1])) {
+                        question = new StringBuilder(padegQuestion);
                         question.append(split[i - 1]).append(" ");
                         split[i - 1] = "";
+                    }
+                    if (i > 0 && isPred(split[i - 1] + " " + answer)) {
+                        question = new StringBuilder(split[i - 1]);
+                        question.append(" ").append(padegQuestion).append(" ");
+                        split[i - 1] = "";
+                    } else {
+                        question = new StringBuilder(padegQuestion);
                     }
                     for (String s : split) {
                         if (s.length() > 0) {
@@ -92,6 +101,26 @@ public class Generator {
                 }
             }
         }
+    }
+
+    private String getPadegQuestion(String str) throws MyStemApplicationException {
+        Iterable<Info> info = getStringInfo(str);
+        for (Info info1 : info) {
+            switch (Padegi.getByType(info1.rawResponse())) {
+                case IMEN:
+                    return "Кто ";
+                case ROD:
+                case VIN:
+                    return "Кого ";
+                case DAT:
+                    return "Кому ";
+                case TVOR:
+                    return "Кем ";
+                case PRED:
+                    return "О ком ";
+            }
+        }
+        throw new IllegalArgumentException();
     }
 
     private boolean isFIO(String str) throws MyStemApplicationException {
@@ -322,11 +351,10 @@ public class Generator {
     }
 
     private Iterable<Info> getStringInfo(String data) throws MyStemApplicationException {
-        return JavaConversions.asJavaIterable(
-                mystemAnalyzer
-                        .analyze(Request.apply(data))
-                        .info()
-                        .toIterable());
+        return JavaConversions.asJavaIterable(mystemAnalyzer
+                .analyze(Request.apply(data))
+                .info()
+                .toIterable());
     }
 
     private String normalize(String data) throws MyStemApplicationException {
