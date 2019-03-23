@@ -1,6 +1,7 @@
 package quest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import ru.stachek66.nlp.mystem.holding.Factory;
 import ru.stachek66.nlp.mystem.holding.MyStem;
@@ -24,9 +25,9 @@ import java.util.stream.Stream;
 @SpringBootApplication
 public class Application {
 
-//  public static void main(String[] args) {
-//    SpringApplication.run(Application.class, args);
-//  }
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
@@ -42,20 +43,58 @@ public class Application {
         return data;
     }
 
-    public static void main(String[] args) throws IOException, URISyntaxException, MyStemApplicationException {
+//    public static void main(String[] args) throws IOException, URISyntaxException, MyStemApplicationException {
+//
+//        String text = init();
+//        System.out.println(text);
+//
+//        createQuestionWithNumber(text);
+////        createQuestionWithYear(text);
+//        final Iterable<Info> result = getStringInfo("К около первоначальным членам ООН относятся 50 государств, подписавших Устав ООН на конференции в Сан-Франциско 26 июня 1945 года, а также Польша");
+//
+//        for (final Info info : result) {
+//            Literal literal = objectMapper.readValue(info.rawResponse(), Literal.class);
+//            System.out.println(info.initial() + " -> " + info.lex() + " | " + info.rawResponse());
+//        }
+//
+//    }
 
-        String text = init();
-        System.out.println(text);
-
-        createQuestionWithNumber(text);
-        final Iterable<Info> result = getStringInfo("К около первоначальным членам ООН относятся 50 государств, подписавших Устав ООН на конференции в Сан-Франциско 26 июня 1945 года, а также Польша");
-
-        for (final Info info : result) {
-            Literal literal = objectMapper.readValue(info.rawResponse(), Literal.class);
-            System.out.println(info.initial() + " -> " + info.lex() + " | " + info.rawResponse());
-        }
-
-    }
+//    private static void createQuestionWithYear(String text) {
+//        System.out.println();
+//        System.out.println();
+//        for (String sentense : text.split("\\.")) {
+//            String[] split = sentense.split("\\s");
+//            for (int i = 0; i < split.length; i++) {
+//                if (isYear(split[i])) {
+//
+//                    continue;
+//                }
+//                if (isNumeric(split[i])) {
+//                    if (isMonth(split[i + 1])) {
+//                        continue;
+//                    }
+//                    String answer = split[i];
+//                    System.out.print("Сколько ");
+//                    System.out.print(split[i + 1]);
+//                    if (isVerb(split[i - 1])) {
+//                        System.out.print(split[i - 1]);
+//                        i--;
+//                    }
+//                    for (int j = 0; j < i; j++) {
+//                        System.out.print(" ");
+//                        System.out.print(split[j].toLowerCase());
+//                    }
+//                    for (int j = i + 3; j < split.length; j++) {
+//                        System.out.print(" ");
+//                        System.out.print(split[j].toLowerCase());
+//                    }
+//                    System.out.println();
+//                    System.out.println(getRandAnswer(answer));
+//                    break;
+//                }
+//            }
+//        }
+//    }
 
     private static Iterable<Info> getStringInfo(String data) throws MyStemApplicationException {
         return JavaConversions.asJavaIterable(
