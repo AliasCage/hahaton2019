@@ -24,7 +24,7 @@ public enum Padegi {
                 return value;
             }
         }
-        throw new IllegalArgumentException(type);
+        return IMEN;
     }
 
 

@@ -26,7 +26,7 @@ public class BeanHeap {
 
     @Bean()
     public List<String> badWords() {
-        return Arrays.asList("около", "почти");
+        return Arrays.asList("около", "почти", "более");
     }
 
     @Bean()

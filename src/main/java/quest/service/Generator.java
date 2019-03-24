@@ -34,7 +34,7 @@ public class Generator {
             createQuestionWithNumber(sentenses, questions);
             createQuestionWithYears(sentenses, questions);
             createQuestionWithNames(sentenses, questions);
-            createQuestionWithNames2(sentenses, questions);
+//            createQuestionWithNames2(sentenses, questions);
             createQuestionWithGeo(sentenses, questions);
             return questions;
         } catch (MyStemApplicationException e) {
@@ -73,15 +73,15 @@ public class Generator {
             for (int i = 0; i < size; i++) {
                 if (analyze.get(i).isFIO()) {
 
-                    String answer = analyze.get(i).normalize();
+                    String answer = analyze.get(i).getText();
                     String padegQuestion = getPadegQuestion(analyze.get(i).getText());
                     analyze.get(i).setText(null);
                     if (i + 1 < size && analyze.get(i + 1).isFIO()) {
-                        answer = answer + " " + analyze.get(i + 1).normalize();
+                        answer = answer + " " + analyze.get(i + 1).getText();
                         analyze.get(i + 1).setText(null);
 
                         if (i + 2 < size && analyze.get(i + 2).isFIO()) {
-                            answer = answer + " " + analyze.get(i + 2).normalize();
+                            answer = answer + " " + analyze.get(i + 2).getText();
                             analyze.get(i + 2).setText(null);
                         }
                     }
@@ -100,18 +100,37 @@ public class Generator {
                         verb = analyze.get(i + 3).getText();
                         analyze.get(i + 3).setText(null);
                     }
+                    String pred = null;
                     if (i > 0 && analyze.get(i - 1).isPred() && analyze.get(i - 1).getText() != null) {
+                        pred = analyze.get(i - 1).getText();
                         question = new StringBuilder(analyze.get(i - 1).getText());
                         question.append(" ").append(padegQuestion).append(" ");
                         analyze.get(i - 1).setText(null);
                     }
-                    if (verb != null) {
-                        question.append(verb).append(" ");
+                    StringBuilder row = new StringBuilder();
+                    for (String s : sentense.split("\\s")) {
+                        row.append(s).append(" ");
                     }
-                    StringBuilder finalQuestion = question;
-                    analyze.stream().filter(s -> s.getText() != null).forEach(s -> finalQuestion.append(s.getText()).append(" "));
+                    String string = row.toString();
 
-                    questions.add(new Response(question.toString(), getRandName(answer, names), answer));
+                    StringBuilder finalQuestion = new StringBuilder();
+                    if (pred != null) {
+                        string = string.replace(pred, "");
+                        finalQuestion.append(pred).append(" ");
+                    }
+                    finalQuestion.append(padegQuestion).append(" ");
+                    string = string.replace(answer, "");
+                    if (verb != null) {
+                        string = string.replace(verb, "");
+                        finalQuestion.append(verb).append(" ");
+                    }
+                    finalQuestion.append(" ").append(string);
+//                    analyze.stream().filter(s -> s.getText() != null).forEach(s -> finalQuestion.append(s.getText()).append(" "));
+
+                    String question1 = finalQuestion.toString();
+                    if (question1.split("\\s").length > 4) {
+                        questions.add(new Response(question1, getRandName(answer, names), answer));
+                    }
                     break;
                 }
             }
@@ -119,63 +138,112 @@ public class Generator {
     }
 
 
-    private void createQuestionWithNames2(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
-        Set<String> names = new HashSet<>();
-        {
-            for (String sentense : sentenses) {
-                List<Literal> analyze = analize.analyze(sentense);
-                int size = analyze.size();
-                for (int i = 0; i < size; i++) {
-                    if (analyze.get(i).isFIO()) {
-                        int up = 1;
-                        String name = analyze.get(i).normalize();
-                        if (i + 1 < size && analyze.get(i + 1).isFIO()) {
-                            name = name + " " + analyze.get(i + 1).normalize();
-                            up++;
-                            if (i + 2 < size && analyze.get(i + 2).isFIO()) {
-                                name = name + " " + analyze.get(i + 2).normalize();
-                                up++;
-                            }
-                        }
-                        i = i + up;
-                        names.add(name);
-                    }
-                }
-            }
-        }
-
-        for (String sentense : sentenses) {
-            String[] split = sentense.split("\\s");
-            int length = split.length;
-            for (int i = 0; i < length; i++) {
-                if (isFIO(split[i])) {
-                    String answer = normalize(split[i]);
-                    String padegQuestion = getPadegQuestion(split[i]);
-                    split[i] = "";
-                    if (i + 1 < length && isFIO(split[i + 1])) {
-                        answer = answer + " " + normalize(split[i + 1]);
-                        split[i + 1] = "";
-
-                        if (i + 2 < length && isFIO(split[i + 2])) {
-                            answer = answer + " " + normalize(split[i + 2]);
-                            split[i + 2] = "";
-                        }
-                    }
-                    if (i + 1 < length && isVerb(split[i] + " " + split[i + 1])) {
-                        StringBuilder question = new StringBuilder(padegQuestion);
-                        question.append(split[i + 1]).append(" ");
-                        split[i + 1] = "";
-
-                        for (int j = i + 1; j < length; j++) {
-                            question.append(split[j]).append(" ");
-                        }
-                        questions.add(new Response(question.toString(), getRandName(answer, names), answer));
-                        break;
-                    }
-                }
-            }
-        }
-    }
+//    private void createQuestionWithNames2(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
+//        Set<String> names = new HashSet<>();
+//        {
+//            for (String sentense : sentenses) {
+//                List<Literal> analyze = analize.analyze(sentense);
+//                int size = analyze.size();
+//                for (int i = 0; i < size; i++) {
+//                    if (analyze.get(i).isFIO()) {
+//                        int up = 1;
+//                        String name = analyze.get(i).normalize();
+//                        if (i + 1 < size && analyze.get(i + 1).isFIO()) {
+//                            name = name + " " + analyze.get(i + 1).normalize();
+//                            up++;
+//                            if (i + 2 < size && analyze.get(i + 2).isFIO()) {
+//                                name = name + " " + analyze.get(i + 2).normalize();
+//                                up++;
+//                            }
+//                        }
+//                        i = i + up;
+//                        names.add(name);
+//                    }
+//                }
+//            }
+//        }
+//
+//        for (String sentense : sentenses) {
+//            List<Literal> analyze = analize.analyze(sentense);
+//            int size = analyze.size();
+//            for (int i = 0; i < size; i++) {
+//                if (analyze.get(i).isFIO()) {
+//
+//                    String answer = analyze.get(i).normalize();
+//                    String padegQuestion = getPadegQuestion(analyze.get(i).getText());
+//                    analyze.get(i).setText(null);
+//                    if (i + 1 < size && analyze.get(i + 1).isFIO()) {
+//                        answer = answer + " " + analyze.get(i + 1).normalize();
+//                        analyze.get(i + 1).setText(null);
+//
+//                        if (i + 2 < size && analyze.get(i + 2).isFIO()) {
+//                            answer = answer + " " + analyze.get(i + 2).normalize();
+//                            analyze.get(i + 2).setText(null);
+//                        }
+//                    }
+//                    StringBuilder question = new StringBuilder(padegQuestion);
+//                    String verb = null;
+//                    if (i > 0 && analyze.get(i - 1).isVerb()) {
+//                        verb = analyze.get(i - 1).getText();
+//                        analyze.get(i - 1).setText(null);
+//                    } else if (i + 1 < size && analyze.get(i + 1).isVerb()) {
+//                        verb = analyze.get(i + 1).getText();
+//                        analyze.get(i + 1).setText(null);
+//                    } else if (i + 2 < size && analyze.get(i + 2).isVerb()) {
+//                        verb = analyze.get(i + 2).getText();
+//                        analyze.get(i + 2).setText(null);
+//                    } else if (i + 3 < size && analyze.get(i + 3).isVerb()) {
+//                        verb = analyze.get(i + 3).getText();
+//                        analyze.get(i + 3).setText(null);
+//                    }
+//                    if (i > 0 && analyze.get(i - 1).isPred() && analyze.get(i - 1).getText() != null) {
+//                        question = new StringBuilder(analyze.get(i - 1).getText());
+//                        question.append(" ").append(padegQuestion).append(" ");
+//                        analyze.get(i - 1).setText(null);
+//                    }
+//                    if (verb != null) {
+//                        question.append(verb).append(" ");
+//                    }
+//                    StringBuilder finalQuestion = question;
+//                    analyze.stream().filter(s -> s.getText() != null).forEach(s -> finalQuestion.append(s.getText()).append(" "));
+//
+//                    questions.add(new Response(question.toString(), getRandName(answer, names), answer));
+//                    break;
+//                }
+//            }
+//        }
+//        for (String sentense : sentenses) {
+//            String[] split = sentense.split("\\s");
+//            int length = split.length;
+//            for (int i = 0; i < length; i++) {
+//                if (isFIO(split[i])) {
+//                    String answer = normalize(split[i]);
+//                    String padegQuestion = getPadegQuestion(split[i]);
+//                    split[i] = "";
+//                    if (i + 1 < length && isFIO(split[i + 1])) {
+//                        answer = answer + " " + normalize(split[i + 1]);
+//                        split[i + 1] = "";
+//
+//                        if (i + 2 < length && isFIO(split[i + 2])) {
+//                            answer = answer + " " + normalize(split[i + 2]);
+//                            split[i + 2] = "";
+//                        }
+//                    }
+//                    if (i + 1 < length && isVerb(split[i] + " " + split[i + 1])) {
+//                        StringBuilder question = new StringBuilder(padegQuestion);
+//                        question.append(split[i + 1]).append(" ");
+//                        split[i + 1] = "";
+//
+//                        for (int j = i + 1; j < length; j++) {
+//                            question.append(split[j]).append(" ");
+//                        }
+//                        questions.add(new Response(question.toString(), getRandName(answer, names), answer));
+//                        break;
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     private String getPadegQuestion(String str) throws MyStemApplicationException {
         Iterable<Info> info = getStringInfo(str);
@@ -237,7 +305,10 @@ public class Generator {
                             question.append(" ").append(s);
                         }
                     }
-                    questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
+                    String question1 = question.toString();
+                    if (question1.split("\\s").length > 4) {
+                        questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
+                    }
                 }
                 if (isNumeric(split[i])) {
                     if (length == i + 1) {
@@ -281,7 +352,10 @@ public class Generator {
                             resultAnswers.add(days.get(3) + " " + answers[1]);
                         }
 
-                        questions.add(new Response(question.toString(), resultAnswers, answer));
+                        String question1 = question.toString();
+                        if (question1.split("\\s").length > 4) {
+                            questions.add(new Response(question.toString(), resultAnswers, answer));
+                        }
                         break;
                     }
                 }
@@ -313,17 +387,17 @@ public class Generator {
                         question = new StringBuilder(split[i - 1]).append(" ");
                         split[i - 1] = "";
                     }
-                    if (checkPadeg(split[i + 1], Padegi.PRED, Padegi.DAT)) {
+                    if (split[i + 1].toLowerCase().equals("лет")) {
+                        question.append(" сколько ");
+                        question.append(split[i + 1]).append(" ");
+                        split[i + 1] = "";
+                    } else if (checkPadeg(split[i + 1], Padegi.PRED, Padegi.DAT)) {
                         question.append(" скольки ");
                         question.append(split[i + 1]).append(" ");
                         split[i + 1] = "";
                     } else if (checkPadeg(split[i + 1], Padegi.ROD)) {
                         //pr dat  rod+ predlog
                         question.append(" скольки ");
-                        question.append(split[i + 1]).append(" ");
-                        split[i + 1] = "";
-                    } else if (split[i + 1].toLowerCase().equals("лет")) {
-                        question.append(" сколько ");
                         question.append(split[i + 1]).append(" ");
                         split[i + 1] = "";
                     } else {
@@ -340,11 +414,16 @@ public class Generator {
                     }
 
                     for (String s : split) {
-                        if (!badWords.contains(s.toLowerCase())) {
-                            question.append(" ").append(s.toLowerCase());
-                        }
+                        question.append(" ").append(s.toLowerCase());
                     }
-                    questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
+                    String question1 = question.toString();
+                    for (String badWord : badWords) {
+                        question1 = question1.replace(badWord, "");
+                    }
+                    String question2 = question1;
+                    if (question1.split("\\s").length > 4) {
+                        questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
+                    }
                     break;
                 }
             }
@@ -359,6 +438,10 @@ public class Generator {
                 if (isGeo(split[i])) {
                     String answer = split[i];
                     split[i] = "";
+
+                    if (i - 1 > 0 && split[i - 1].equals("в")) {
+                        split[i - 1] = "";
+                    }
                     StringBuilder question;
                     question = new StringBuilder("Где ");
                     for (String s : split) {
@@ -366,7 +449,11 @@ public class Generator {
                             question.append(" ").append(s);
                         }
                     }
-                    questions.add(new Response(question.toString(), null, normalize(answer)));
+
+                    String question1 = question.toString();
+                    if (question1.split("\\s").length > 4) {
+                        questions.add(new Response(question.toString(), null, normalize(answer)));
+                    }
                     break;
                 }
             }

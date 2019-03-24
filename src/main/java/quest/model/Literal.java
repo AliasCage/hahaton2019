@@ -59,4 +59,13 @@ public class Literal {
         return false;
     }
 
+    public boolean isGeo() {
+        for (Analysis analysis : analysis) {
+            if (analysis.getGr().contains("гео")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
