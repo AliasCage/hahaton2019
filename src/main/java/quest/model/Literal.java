@@ -1,10 +1,7 @@
 package quest.model;
 
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.List;
 
@@ -12,6 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
+@EqualsAndHashCode
 public class Literal {
 
     private String text;
@@ -25,6 +23,40 @@ public class Literal {
         private String gr;
         private int wt;
         private String lex;
+    }
+
+    public boolean isFIO() {
+        for (Analysis analysis : analysis) {
+            if (analysis.getGr().contains("имя,") || analysis.getGr().contains("отч,") || analysis.getGr().contains("фам,")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public String normalize() {
+        for (Analysis analysis : analysis) {
+            return analysis.getLex();
+        }
+        return "";
+    }
+
+    public boolean isVerb() {
+        for (Analysis analysis : analysis) {
+            if (analysis.getGr().contains("V")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isPred() {
+        for (Analysis analysis : analysis) {
+            if (analysis.getGr().contains("PR")) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

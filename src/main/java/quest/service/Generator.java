@@ -3,6 +3,7 @@ package quest.service;
 import jdk.nashorn.internal.runtime.regexp.joni.exception.InternalException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import quest.model.Literal;
 import quest.model.Padegi;
 import quest.model.Response;
 import ru.stachek66.nlp.mystem.holding.MyStem;
@@ -17,6 +18,8 @@ import java.util.*;
 public class Generator {
 
     @Autowired
+    private Analize analize;
+    @Autowired
     private MyStem mystemAnalyzer;
     @Autowired
     private List<String> badWords;
@@ -25,12 +28,13 @@ public class Generator {
 
     public List<Response> generate(String rawText) {
         try {
-            String[] sentenses = rawText.split("\\.| —");
+            String[] sentenses = rawText.split("[.—:]");
 
             List<Response> questions = new ArrayList<>();
             createQuestionWithNumber(sentenses, questions);
             createQuestionWithYears(sentenses, questions);
             createQuestionWithNames(sentenses, questions);
+            createQuestionWithNames2(sentenses, questions);
             createQuestionWithGeo(sentenses, questions);
             return questions;
         } catch (MyStemApplicationException e) {
@@ -42,18 +46,96 @@ public class Generator {
         Set<String> names = new HashSet<>();
         {
             for (String sentense : sentenses) {
-                String[] word = sentense.split("\\s");
-                for (int i = 0; i < word.length; i++) {
-                    if (isFIO(word[i])) {
+                List<Literal> analyze = analize.analyze(sentense);
+                int size = analyze.size();
+                for (int i = 0; i < size; i++) {
+                    if (analyze.get(i).isFIO()) {
                         int up = 1;
-                        String name = normalize(word[i]);
-                        if (i + 1 < word.length && isFIO(word[i + 1])) {
-                            name = name + " " + normalize(word[i + 1]);
+                        String name = analyze.get(i).normalize();
+                        if (i + 1 < size && analyze.get(i + 1).isFIO()) {
+                            name = name + " " + analyze.get(i + 1).normalize();
                             up++;
+                            if (i + 2 < size && analyze.get(i + 2).isFIO()) {
+                                name = name + " " + analyze.get(i + 2).normalize();
+                                up++;
+                            }
                         }
-                        if (i + 2 < word.length && isFIO(word[i + 2])) {
-                            name = name + " " + normalize(word[i + 2]);
+                        i = i + up;
+                        names.add(name);
+                    }
+                }
+            }
+        }
+
+        for (String sentense : sentenses) {
+            List<Literal> analyze = analize.analyze(sentense);
+            int size = analyze.size();
+            for (int i = 0; i < size; i++) {
+                if (analyze.get(i).isFIO()) {
+
+                    String answer = analyze.get(i).normalize();
+                    String padegQuestion = getPadegQuestion(analyze.get(i).getText());
+                    analyze.get(i).setText(null);
+                    if (i + 1 < size && analyze.get(i + 1).isFIO()) {
+                        answer = answer + " " + analyze.get(i + 1).normalize();
+                        analyze.get(i + 1).setText(null);
+
+                        if (i + 2 < size && analyze.get(i + 2).isFIO()) {
+                            answer = answer + " " + analyze.get(i + 2).normalize();
+                            analyze.get(i + 2).setText(null);
+                        }
+                    }
+                    StringBuilder question = new StringBuilder(padegQuestion);
+                    String verb = null;
+                    if (i > 0 && analyze.get(i - 1).isVerb()) {
+                        verb = analyze.get(i - 1).getText();
+                        analyze.get(i - 1).setText(null);
+                    } else if (i + 1 < size && analyze.get(i + 1).isVerb()) {
+                        verb = analyze.get(i + 1).getText();
+                        analyze.get(i + 1).setText(null);
+                    } else if (i + 2 < size && analyze.get(i + 2).isVerb()) {
+                        verb = analyze.get(i + 2).getText();
+                        analyze.get(i + 2).setText(null);
+                    } else if (i + 3 < size && analyze.get(i + 3).isVerb()) {
+                        verb = analyze.get(i + 3).getText();
+                        analyze.get(i + 3).setText(null);
+                    }
+                    if (i > 0 && analyze.get(i - 1).isPred() && analyze.get(i - 1).getText() != null) {
+                        question = new StringBuilder(analyze.get(i - 1).getText());
+                        question.append(" ").append(padegQuestion).append(" ");
+                        analyze.get(i - 1).setText(null);
+                    }
+                    if (verb != null) {
+                        question.append(verb).append(" ");
+                    }
+                    StringBuilder finalQuestion = question;
+                    analyze.stream().filter(s -> s.getText() != null).forEach(s -> finalQuestion.append(s.getText()).append(" "));
+
+                    questions.add(new Response(question.toString(), getRandName(answer, names), answer));
+                    break;
+                }
+            }
+        }
+    }
+
+
+    private void createQuestionWithNames2(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
+        Set<String> names = new HashSet<>();
+        {
+            for (String sentense : sentenses) {
+                List<Literal> analyze = analize.analyze(sentense);
+                int size = analyze.size();
+                for (int i = 0; i < size; i++) {
+                    if (analyze.get(i).isFIO()) {
+                        int up = 1;
+                        String name = analyze.get(i).normalize();
+                        if (i + 1 < size && analyze.get(i + 1).isFIO()) {
+                            name = name + " " + analyze.get(i + 1).normalize();
                             up++;
+                            if (i + 2 < size && analyze.get(i + 2).isFIO()) {
+                                name = name + " " + analyze.get(i + 2).normalize();
+                                up++;
+                            }
                         }
                         i = i + up;
                         names.add(name);
@@ -73,30 +155,23 @@ public class Generator {
                     if (i + 1 < length && isFIO(split[i + 1])) {
                         answer = answer + " " + normalize(split[i + 1]);
                         split[i + 1] = "";
-                    }
-                    if (i + 2 < length && isFIO(split[i + 2])) {
-                        answer = answer + " " + normalize(split[i + 2]);
-                        split[i + 2] = "";
-                    }
-                    StringBuilder question = new StringBuilder(padegQuestion);
-                    if (i > 0 && isVerb(split[i - 1])) {
-                        question = new StringBuilder(padegQuestion);
-                        question.append(split[i - 1]).append(" ");
-                        split[i - 1] = "";
-                    }
-                    if (i > 0 && isPred(split[i - 1] + " " + answer)) {
-                        question = new StringBuilder(split[i - 1]);
-                        question.append(" ").append(padegQuestion).append(" ");
-                        split[i - 1] = "";
-                    }
 
-                    for (String s : split) {
-                        if (s.length() > 0) {
-                            question.append(s).append(" ");
+                        if (i + 2 < length && isFIO(split[i + 2])) {
+                            answer = answer + " " + normalize(split[i + 2]);
+                            split[i + 2] = "";
                         }
                     }
-                    questions.add(new Response(question.toString(), getRandName(answer, names), answer));
-                    break;
+                    if (i + 1 < length && isVerb(split[i] + " " + split[i + 1])) {
+                        StringBuilder question = new StringBuilder(padegQuestion);
+                        question.append(split[i + 1]).append(" ");
+                        split[i + 1] = "";
+
+                        for (int j = i + 1; j < length; j++) {
+                            question.append(split[j]).append(" ");
+                        }
+                        questions.add(new Response(question.toString(), getRandName(answer, names), answer));
+                        break;
+                    }
                 }
             }
         }
@@ -137,7 +212,7 @@ public class Generator {
             String[] split = sentense.split("\\s");
             int length = split.length;
             for (int i = 0; i < length; i++) {
-                if (isYear(split[i]) && (split[i + 1].toLowerCase().startsWith("г") || split[i + 1].toLowerCase().equals("г"))) {
+                if (i + 1 < length && isYear(split[i]) && (split[i + 1].toLowerCase().startsWith("г") || split[i + 1].toLowerCase().equals("г"))) {
                     if (i == 0) {
                         continue;
                     }
@@ -198,10 +273,12 @@ public class Generator {
                             resultAnswers.add(days.get(0) + " " + answers[1] + " " + years.get(0));
                             resultAnswers.add(days.get(1) + " " + answers[1] + " " + years.get(1));
                             resultAnswers.add(days.get(2) + " " + answers[1] + " " + years.get(2));
+                            resultAnswers.add(days.get(2) + " " + answers[1] + " " + years.get(2));
                         } else {
                             resultAnswers.add(days.get(0) + " " + answers[1]);
                             resultAnswers.add(days.get(1) + " " + answers[1]);
                             resultAnswers.add(days.get(2) + " " + answers[1]);
+                            resultAnswers.add(days.get(3) + " " + answers[1]);
                         }
 
                         questions.add(new Response(question.toString(), resultAnswers, answer));
@@ -230,21 +307,27 @@ public class Generator {
                     //todo:fix in future
                     String answer = split[i];
                     split[i] = "";
-                    StringBuilder question = new StringBuilder(" сколько ");
-                    if (checkPadeg(split[i + 1], Padegi.PRED, Padegi.DAT)) {
-                        question = new StringBuilder(" скольки ");
-                    }
-                    if (isPred(split[i - 1])) {
+                    String q = " сколько ";
+                    StringBuilder question = new StringBuilder();
+                    if (i > 0 && isPred(split[i - 1])) {
                         question = new StringBuilder(split[i - 1]).append(" ");
-//                        if (isMany(split[i + 1])) {
-                        if (checkPadeg(split[i + 1], Padegi.ROD)) {
-                            //pr dat  rod+ predlog
-                            question.append(" скольки ");
-                        }
-//                        else {
-//                            //vin rod tv
-//                            question.append(" сколько ");
-//                        }
+                        split[i - 1] = "";
+                    }
+                    if (checkPadeg(split[i + 1], Padegi.PRED, Padegi.DAT)) {
+                        question.append(" скольки ");
+                        question.append(split[i + 1]).append(" ");
+                        split[i + 1] = "";
+                    } else if (checkPadeg(split[i + 1], Padegi.ROD)) {
+                        //pr dat  rod+ predlog
+                        question.append(" скольки ");
+                        question.append(split[i + 1]).append(" ");
+                        split[i + 1] = "";
+                    } else if (split[i + 1].toLowerCase().equals("лет")) {
+                        question.append(" сколько ");
+                        question.append(split[i + 1]).append(" ");
+                        split[i + 1] = "";
+                    } else {
+                        question.append(q);
                     }
                     question.append(split[i + 1]);
                     split[i + 1] = "";
@@ -256,14 +339,9 @@ public class Generator {
                         }
                     }
 
-                    for (int j = 0; j < i; j++) {
-                        if (split[i].length() > 0 && !badWords.contains(split[i].toLowerCase())) {
-                            question.append(" ").append(split[j].toLowerCase());
-                        }
-                    }
-                    for (int j = i + 1; j < length; j++) {
-                        if (split[i].length() > 0 && !badWords.contains(split[i].toLowerCase())) {
-                            question.append(" ").append(split[j].toLowerCase());
+                    for (String s : split) {
+                        if (!badWords.contains(s.toLowerCase())) {
+                            question.append(" ").append(s.toLowerCase());
                         }
                     }
                     questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
@@ -288,7 +366,7 @@ public class Generator {
                             question.append(" ").append(s);
                         }
                     }
-                    questions.add(new Response(question.toString(), null, answer));
+                    questions.add(new Response(question.toString(), null, normalize(answer)));
                     break;
                 }
             }
