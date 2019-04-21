@@ -25,10 +25,16 @@ public class Analize {
     public List<Literal> analyze(String row) {
         try {
             List<Literal> response = new ArrayList<>();
-            Iterable<Info> info = getStringInfo(row);
-            for (Info i : info) {
-                Literal literal = mapper.readValue(i.rawResponse(), Literal.class);
+
+            int i = 0;
+            String[] sentence = row.split(" ");
+            for (Info info : getStringInfo(row)) {
+                Literal literal = mapper.readValue(info.rawResponse(), Literal.class);
+                while (!sentence[i].contains(literal.getText())) {
+                    response.add(new Literal(sentence[i++]));
+                }
                 response.add(literal);
+                i++;
             }
             return response;
         } catch (IOException | MyStemApplicationException e) {

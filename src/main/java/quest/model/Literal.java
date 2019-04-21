@@ -1,6 +1,7 @@
 package quest.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 import java.util.List;
@@ -14,6 +15,12 @@ public class Literal {
 
     private String text;
     private List<Analysis> analysis;
+    private boolean number = false;
+
+    public Literal(String text) {
+        this.text = text;
+        this.number = true;
+    }
 
     @Getter
     @Setter
@@ -25,6 +32,7 @@ public class Literal {
         private String lex;
     }
 
+    @JsonIgnore
     public boolean isFIO() {
         for (Analysis analysis : analysis) {
             if (analysis.getGr().contains("имя,") || analysis.getGr().contains("отч,") || analysis.getGr().contains("фам,")) {
@@ -34,6 +42,7 @@ public class Literal {
         return false;
     }
 
+    @JsonIgnore
     public String normalize() {
         for (Analysis analysis : analysis) {
             return analysis.getLex();
@@ -41,6 +50,7 @@ public class Literal {
         return "";
     }
 
+    @JsonIgnore
     public boolean isVerb() {
         for (Analysis analysis : analysis) {
             if (analysis.getGr().contains("V")) {
@@ -50,6 +60,7 @@ public class Literal {
         return false;
     }
 
+    @JsonIgnore
     public boolean isPred() {
         for (Analysis analysis : analysis) {
             if (analysis.getGr().contains("PR")) {
@@ -59,6 +70,7 @@ public class Literal {
         return false;
     }
 
+    @JsonIgnore
     public boolean isGeo() {
         for (Analysis analysis : analysis) {
             if (analysis.getGr().contains("гео")) {
