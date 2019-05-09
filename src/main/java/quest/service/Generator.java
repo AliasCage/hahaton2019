@@ -13,6 +13,7 @@ import ru.stachek66.nlp.mystem.model.Info;
 import scala.collection.JavaConversions;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class Generator {
@@ -32,8 +33,8 @@ public class Generator {
 
             List<Response> questions = new ArrayList<>();
             createQuestionWithNumber(sentenses, questions);
-            createQuestionWithYears(sentenses, questions);
-            createQuestionWithNames(sentenses, questions);
+//            createQuestionWithYears(sentenses, questions);
+//            createQuestionWithNames(sentenses, questions);
 //            createQuestionWithNames2(sentenses, questions);
             createQuestionWithGeo(sentenses, questions);
             return questions;
@@ -85,7 +86,6 @@ public class Generator {
                             analyze.get(i + 2).setText(null);
                         }
                     }
-                    StringBuilder question = new StringBuilder(padegQuestion);
                     String verb = null;
                     if (i > 0 && analyze.get(i - 1).isVerb()) {
                         verb = analyze.get(i - 1).getText();
@@ -103,7 +103,7 @@ public class Generator {
                     String pred = null;
                     if (i > 0 && analyze.get(i - 1).isPred() && analyze.get(i - 1).getText() != null) {
                         pred = analyze.get(i - 1).getText();
-                        question = new StringBuilder(analyze.get(i - 1).getText());
+                        StringBuilder question = new StringBuilder(analyze.get(i - 1).getText());
                         question.append(" ").append(padegQuestion).append(" ");
                         analyze.get(i - 1).setText(null);
                     }
@@ -365,127 +365,83 @@ public class Generator {
 
     private void createQuestionWithNumber(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
         for (String sentense : sentenses) {
-            String[] split = sentense.split("\\s");
-            int length = split.length;
-            for (int i = 0; i < length; i++) {
-                if (isYear(split[i])) {
+            List<Literal> analyze = analize.analyze(sentense);
+            analyze.removeIf(a -> badWords.contains(a.getText()));
+            for (int i = 0; i < analyze.size(); i++) {
+                if (analyze.get(i).isYear()) {
                     continue;
                 }
-                if (isNumeric(split[i])) {
-                    if (length == i + 1) {
+                if (analyze.get(i).isNumber()) {
+                    if (analyze.size() == i + 1) {
                         continue;
                     }
-                    if (isMonth(split[i + 1])) {
+                    if (isMonth(analyze.get(i).getText())) {
                         continue;
                     }
                     //todo:fix in future
-                    String answer = split[i];
-                    split[i] = "";
+                    String answer = analyze.remove(i--).getText();
+
                     String q = " сколько ";
                     StringBuilder question = new StringBuilder();
-                    if (i > 0 && isPred(split[i - 1])) {
-                        question = new StringBuilder(split[i - 1]).append(" ");
-                        split[i - 1] = "";
+                    if (i > 0 && analyze.get(i).isPred()) {
+                        question = new StringBuilder(analyze.remove(i--).getText()).append(" ");
                     }
-                    if (split[i + 1].toLowerCase().equals("лет")) {
+                    if (analyze.get(i + 1).getText().toLowerCase().equals("лет")) {
                         question.append(" сколько ");
-                        question.append(split[i + 1]).append(" ");
-                        split[i + 1] = "";
-                    } else if (checkPadeg(split[i + 1], Padegi.PRED, Padegi.DAT)) {
+                        question.append(analyze.remove(i + 1).getText()).append(" ");
+                        i--;
+                    } else if (analyze.get(i + 1).checkPadeg(Padegi.PRED, Padegi.DAT)) {
                         question.append(" скольки ");
-                        question.append(split[i + 1]).append(" ");
-                        split[i + 1] = "";
-                    } else if (checkPadeg(split[i + 1], Padegi.ROD)) {
+                        question.append(analyze.remove(i + 1).getText()).append(" ");
+                        i--;
+                    } else if (analyze.get(i + 1).checkPadeg(Padegi.ROD)) {
                         //pr dat  rod+ predlog
                         question.append(" скольки ");
-                        question.append(split[i + 1]).append(" ");
-                        split[i + 1] = "";
+                        question.append(analyze.remove(i + 1).getText()).append(" ");
+                        i--;
                     } else {
                         question.append(q);
                     }
-                    question.append(split[i + 1]);
-                    split[i + 1] = "";
+
+                    question.append(analyze.get(i + 1).getText());
+                    i--;
                     for (int j = i; j > 0; j--) {
-                        if (isVerb(split[j])) {
-                            question.append(" ").append(split[j]);
-                            split[j] = "";
+                        if (analyze.get(j).isVerb()) {
+                            question.append(" ").append(analyze.get(j).getText());
+                            analyze.set(j, null);
                             i--;
                         }
                     }
-
-                    for (String s : split) {
-                        question.append(" ").append(s.toLowerCase());
-                    }
-                    String question1 = question.toString();
-                    for (String badWord : badWords) {
-                        question1 = question1.replace(badWord, "");
-                    }
-                    String question2 = question1;
-                    if (question1.split("\\s").length > 4) {
-                        questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
-                    }
+                    question.append(" ").append(analyze.stream().filter(Objects::nonNull).map(Literal::getText).collect(Collectors.joining(" ")));
+                    questions.add(new Response(question.toString(), getRandAnswer(answer), answer));
                     break;
                 }
             }
         }
     }
 
-    private void createQuestionWithGeo(String[] sentenses, List<Response> questions) throws MyStemApplicationException {
+    private void createQuestionWithGeo(String[] sentenses, List<Response> questions) {
         for (String sentense : sentenses) {
-            String[] split = sentense.split("\\s");
-            int length = split.length;
-            for (int i = 0; i < length; i++) {
-                if (isGeo(split[i])) {
-                    String answer = split[i];
-                    split[i] = "";
-
-                    if (i - 1 > 0 && split[i - 1].equals("в")) {
-                        split[i - 1] = "";
+            List<Literal> analyze = analize.analyze(sentense);
+            for (int i = 0; i < analyze.size(); i++) {
+                Literal literal = analyze.get(i);
+                if (literal.isGeo()) {
+                    analyze.remove(i);
+                    if (i - 1 > 0 && analyze.get(i - 1).getText().equals("в")) {
+                        analyze.remove(i - 1);
                     }
-                    StringBuilder question;
-                    question = new StringBuilder("Где ");
-                    for (String s : split) {
-                        if (s.length() > 0) {
-                            question.append(" ").append(s);
-                        }
-                    }
-
-                    String question1 = question.toString();
-                    if (question1.split("\\s").length > 4) {
-                        questions.add(new Response(question.toString(), null, normalize(answer)));
-                    }
+                    String question = "Где " + analyze.stream().map(Literal::getText).collect(Collectors.joining(" "));
+                    questions.add(new Response(question, null, literal.normalize()));
                     break;
                 }
             }
         }
-    }
-
-    private boolean checkPadeg(String str, Padegi... padegis) throws MyStemApplicationException {
-        Iterable<Info> info = getStringInfo(str);
-        for (Info info1 : info) {
-            for (Padegi padegi : padegis) {
-                if (info1.rawResponse().contains(padegi.getType())) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private boolean isMany(String str) throws MyStemApplicationException {
         Iterable<Info> info = getStringInfo(str);
         for (Info info1 : info) {
             if (info1.rawResponse().contains("мн")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isPred(String str) throws MyStemApplicationException {
-        Iterable<Info> info = getStringInfo(str);
-        for (Info info1 : info) {
-            if (info1.rawResponse().contains("PR")) {
                 return true;
             }
         }
@@ -511,42 +467,11 @@ public class Generator {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
     }
 
-    private boolean isVerb(String str) throws MyStemApplicationException {
-        if (str.length() < 4) {
-            return false;
-        }
-        Iterable<Info> info = getStringInfo(str);
-        for (Info info1 : info) {
-            if (info1.rawResponse().contains("V")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isGeo(String str) throws MyStemApplicationException {
-        Iterable<Info> info = getStringInfo(str);
-        for (Info info1 : info) {
-            if (info1.rawResponse().contains("гео")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private Iterable<Info> getStringInfo(String data) throws MyStemApplicationException {
         return JavaConversions.asJavaIterable(mystemAnalyzer
                 .analyze(Request.apply(data))
                 .info()
                 .toIterable());
-    }
-
-    private String normalize(String data) throws MyStemApplicationException {
-        Iterable<Info> stringInfo = getStringInfo(data);
-        for (Info info : stringInfo) {
-            return info.lex().get();
-        }
-        return data;
     }
 
     private List<String> getRandAnswer(String answer) {

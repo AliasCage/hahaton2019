@@ -4,11 +4,13 @@ package quest.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @ToString
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @EqualsAndHashCode
 public class Literal {
@@ -16,10 +18,15 @@ public class Literal {
     private String text;
     private List<Analysis> analysis;
     private boolean number = false;
+    private boolean year = false;
 
-    public Literal(String text) {
-        this.text = text;
-        this.number = true;
+    public static Literal ofNumber(Integer number) {
+        return Literal.builder()
+                .analysis(Collections.emptyList())
+                .year(number < 2032 && number > 1009)
+                .text(number.toString())
+                .number(true)
+                .build();
     }
 
     @Getter
@@ -35,7 +42,9 @@ public class Literal {
     @JsonIgnore
     public boolean isFIO() {
         for (Analysis analysis : analysis) {
-            if (analysis.getGr().contains("имя,") || analysis.getGr().contains("отч,") || analysis.getGr().contains("фам,")) {
+            if (analysis.getGr().contains("persn") ||
+                    analysis.getGr().contains("patrn") ||
+                    analysis.getGr().contains("famn")) {
                 return true;
             }
         }
@@ -47,7 +56,7 @@ public class Literal {
         for (Analysis analysis : analysis) {
             return analysis.getLex();
         }
-        return "";
+        return text;
     }
 
     @JsonIgnore
@@ -73,8 +82,20 @@ public class Literal {
     @JsonIgnore
     public boolean isGeo() {
         for (Analysis analysis : analysis) {
-            if (analysis.getGr().contains("гео")) {
+            if (analysis.getGr().contains("geo")) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    @JsonIgnore
+    public boolean checkPadeg(Padegi... padegis) {
+        for (Analysis a : analysis) {
+            for (Padegi padegi : padegis) {
+                if (a.getGr().contains(padegi.getType())) {
+                    return true;
+                }
             }
         }
         return false;

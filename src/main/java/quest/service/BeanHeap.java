@@ -14,8 +14,8 @@ import java.util.List;
 public class BeanHeap {
 
     @Bean
-    public MyStem createMystemAnalyzer() {
-        return new Factory("-igd --format json --weight")
+    public MyStem createAnalyzer() {
+        return new Factory("-igd --eng-gr --format json --weight")
                 .newMyStem("3.0", Option.empty()).get();
     }
 
